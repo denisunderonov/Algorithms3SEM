@@ -1,157 +1,196 @@
 # ДВОИЧНОЕ ДЕРЕВО ПОИСКА (Binary Search Tree)
-# Каждый узел имеет максимум 2 детей: левый и правый
-# Правило: левый < родитель < правый
+# Основная идея: каждый узел имеет максимум 2 ребёнка
+# Главное правило: всё что слева < родитель < всё что справа
+# Это позволяет быстро искать элементы - O(log n)
 
 def create_node(value):
-    """Создать узел дерева"""
+    """
+    Создаём новый узел дерева
+    По сути это просто словарь с тремя полями
+    """
     return {
-        'value': value,
-        'left': None,   # левый ребёнок
-        'right': None   # правый ребёнок
+        'value': value,    # само значение
+        'left': None,      # левый ребёнок (меньшие значения)
+        'right': None      # правый ребёнок (большие значения)
     }
 
 
 def insert(root, value):
-    """Вставка элемента в дерево"""
-    # Если дерево пустое - создаём корень
+    """
+    Вставка нового элемента в дерево
+    Работает рекурсивно - идём вниз по дереву пока не найдём пустое место
+    """
+    # Базовый случай: если дерево пустое, создаём первый узел (корень)
     if root is None:
         return create_node(value)
     
-    # Рекурсивная вставка
+    # Рекурсивно ищем место для вставки
     if value < root['value']:
-        # Если меньше - идём влево
+        # Если новое значение меньше текущего узла - идём в левое поддерево
         root['left'] = insert(root['left'], value)
     elif value > root['value']:
-        # Если больше - идём вправо
+        # Если больше - идём в правое поддерево
         root['right'] = insert(root['right'], value)
     else:
-        # Если равно - не добавляем дубликаты
+        # Если значение уже есть - не добавляем дубликаты
         print(f"Значение {value} уже есть в дереве")
     
     return root
 
 
 def find_min(node):
-    """Найти минимальный элемент (самый левый)"""
+    """
+    Ищем минимальный элемент в дереве
+    Логика простая: минимум всегда находится в самом левом узле
+    """
     current = node
+    # Просто идём влево пока можем
     while current['left'] is not None:
         current = current['left']
     return current
 
 
 def delete(root, value):
-    """Удаление элемента из дерева"""
+    """
+    Удаление элемента из дерева - самая сложная операция!
+    Нужно учитывать 3 разных случая в зависимости от количества детей у узла
+    """
+    # Если дерево пустое - удалять нечего
     if root is None:
         print(f"Значение {value} не найдено")
         return None
-    
-    # Ищем элемент для удаления
+
+    # Сначала ищем элемент для удаления
     if value < root['value']:
+        # Ищем в левом поддереве
         root['left'] = delete(root['left'], value)
     elif value > root['value']:
+        # Ищем в правом поддереве
         root['right'] = delete(root['right'], value)
     else:
-        # Нашли элемент! Удаляем
+        # Нашли! Теперь удаляем с учётом 3 случаев
         print(f"Удаляем {value}")
         
-        # Случай 1: нет детей (лист)
+        # СЛУЧАЙ 1: Узел без детей (лист) - просто убираем
         if root['left'] is None and root['right'] is None:
             return None
         
-        # Случай 2: один ребёнок
+        # СЛУЧАЙ 2: Узел с одним ребёнком - заменяем узел его ребёнком
         if root['left'] is None:
-            return root['right']
+            return root['right']  # есть только правый
         if root['right'] is None:
-            return root['left']
+            return root['left']   # есть только левый
         
-        # Случай 3: два ребёнка
-        # Находим минимум в правом поддереве
+        # СЛУЧАЙ 3: Узел с двумя детьми - самый сложный!
+        # Находим минимум в правом поддереве (это будет преемник)
         min_node = find_min(root['right'])
+        # Копируем значение преемника на место удаляемого
         root['value'] = min_node['value']
+        # Удаляем преемника из правого поддерева
         root['right'] = delete(root['right'], min_node['value'])
     
     return root
 
 
 # ============== ПОИСК В ГЛУБИНУ (DFS - Depth First Search) ==============
+# DFS идёт максимально глубоко по одной ветке, потом возвращается
+# Есть 3 способа обхода в зависимости от порядка посещения узлов
 
 def dfs_inorder_recursive(node, result=None):
-    """Симметричный обход (In-order): ЛЕВЫЙ -> КОРЕНЬ -> ПРАВЫЙ
-    Результат: отсортированный список"""
+    """
+    Симметричный обход (In-order): ЛЕВЫЙ -> КОРЕНЬ -> ПРАВЫЙ
+    Важная фишка: для BST даёт ОТСОРТИРОВАННЫЙ список!
+    Порядок: сначала всё слева, потом сам узел, потом всё справа
+    """
     if result is None:
         result = []
     
     if node is not None:
-        dfs_inorder_recursive(node['left'], result)    # Левое поддерево
-        result.append(node['value'])                    # Корень
-        dfs_inorder_recursive(node['right'], result)   # Правое поддерево
+        dfs_inorder_recursive(node['left'], result)    # 1. Обходим всё левое поддерево
+        result.append(node['value'])                    # 2. Обрабатываем текущий узел
+        dfs_inorder_recursive(node['right'], result)   # 3. Обходим всё правое поддерево
     
     return result
 
 
 def dfs_preorder_recursive(node, result=None):
-    """Прямой обход (Pre-order): КОРЕНЬ -> ЛЕВЫЙ -> ПРАВЫЙ
-    Используется для копирования дерева"""
+    """
+    Прямой обход (Pre-order): КОРЕНЬ -> ЛЕВЫЙ -> ПРАВЫЙ
+    Удобен для копирования структуры дерева
+    Порядок: сначала сам узел, потом дети
+    """
     if result is None:
         result = []
     
     if node is not None:
-        result.append(node['value'])                     # Корень
-        dfs_preorder_recursive(node['left'], result)    # Левое поддерево
-        dfs_preorder_recursive(node['right'], result)   # Правое поддерево
+        result.append(node['value'])                     # 1. Обрабатываем текущий узел
+        dfs_preorder_recursive(node['left'], result)    # 2. Обходим левое поддерево
+        dfs_preorder_recursive(node['right'], result)   # 3. Обходим правое поддерево
     
     return result
 
 
 def dfs_postorder_recursive(node, result=None):
-    """Обратный обход (Post-order): ЛЕВЫЙ -> ПРАВЫЙ -> КОРЕНЬ
-    Используется для удаления дерева"""
+    """
+    Обратный обход (Post-order): ЛЕВЫЙ -> ПРАВЫЙ -> КОРЕНЬ
+    Используется для безопасного удаления дерева (сначала детей, потом родителя)
+    Порядок: сначала обрабатываем всех детей, потом сам узел
+    """
     if result is None:
         result = []
     
     if node is not None:
-        dfs_postorder_recursive(node['left'], result)   # Левое поддерево
-        dfs_postorder_recursive(node['right'], result)  # Правое поддерево
-        result.append(node['value'])                     # Корень
+        dfs_postorder_recursive(node['left'], result)   # 1. Обходим левое поддерево
+        dfs_postorder_recursive(node['right'], result)  # 2. Обходим правое поддерево
+        result.append(node['value'])                     # 3. Обрабатываем текущий узел
     
     return result
 
 
 def dfs_inorder_iterative(root):
-    """Симметричный обход (итеративный) - используем стек"""
+    """
+    Симметричный обход БЕЗ рекурсии - используем стек вручную
+    Стек помогает запомнить узлы, к которым нужно вернуться
+    """
     result = []
-    stack = []
+    stack = []       # Наш стек для хранения узлов
     current = root
     
     while current is not None or stack:
-        # Идём максимально влево
+        # Идём максимально влево, складывая все узлы в стек
         while current is not None:
             stack.append(current)
             current = current['left']
         
-        # Берём узел из стека
+        # Достигли самого левого узла, берём его из стека
         current = stack.pop()
-        result.append(current['value'])
+        result.append(current['value'])  # Обрабатываем узел
         
-        # Переходим вправо
+        # Теперь идём вправо от этого узла
         current = current['right']
     
     return result
 
 
 def dfs_preorder_iterative(root):
-    """Прямой обход (итеративный) - используем стек"""
+    """
+    Прямой обход без рекурсии
+    Тут проще - просто кладём узлы в стек и сразу обрабатываем
+    """
     if root is None:
         return []
     
     result = []
-    stack = [root]
+    stack = [root]  # Начинаем с корня
     
     while stack:
+        # Берём последний узел из стека
         node = stack.pop()
-        result.append(node['value'])
+        result.append(node['value'])  # Обрабатываем его сразу
         
-        # Сначала правый (чтобы левый обработался первым)
+        # Добавляем детей в стек
+        # ВАЖНО: сначала правого (он окажется глубже в стеке)
+        # чтобы левый обработался первым (стек = LIFO)
         if node['right']:
             stack.append(node['right'])
         if node['left']:
@@ -161,23 +200,30 @@ def dfs_preorder_iterative(root):
 
 
 def dfs_postorder_iterative(root):
-    """Обратный обход (итеративный) - используем два стека"""
+    """
+    Обратный обход без рекурсии - самый хитрый!
+    Используем ДВА стека, чтобы получить правильный порядок
+    """
     if root is None:
         return []
     
     result = []
-    stack1 = [root]
-    stack2 = []
+    stack1 = [root]  # Первый стек для обхода
+    stack2 = []      # Второй стек для правильного порядка
     
+    # Первый проход - складываем узлы во второй стек
     while stack1:
         node = stack1.pop()
-        stack2.append(node)
+        stack2.append(node)  # Кладём во второй стек (не обрабатываем!)
         
+        # Добавляем детей в первый стек
         if node['left']:
             stack1.append(node['left'])
         if node['right']:
             stack1.append(node['right'])
     
+    # Второй проход - достаём из второго стека и обрабатываем
+    # Получается обратный порядок - как раз то что нужно для post-order
     while stack2:
         result.append(stack2.pop()['value'])
     
@@ -185,10 +231,15 @@ def dfs_postorder_iterative(root):
 
 
 # ============== ПОИСК В ШИРИНУ (BFS - Breadth First Search) ==============
+# BFS обходит дерево по уровням: сначала весь уровень 0, потом уровень 1, и т.д.
+# Использует ОЧЕРЕДЬ (FIFO) вместо стека (LIFO)
 
 def bfs_iterative(root):
-    """Поиск в ширину (итеративный) - используем очередь
-    Обходим дерево уровень за уровнем"""
+    """
+    Поиск в ширину с очередью
+    Идея: обрабатываем узел и сразу добавляем всех его детей в очередь
+    Получается обход по уровням
+    """
     if root is None:
         return []
     
@@ -196,10 +247,11 @@ def bfs_iterative(root):
     queue = [root]  # Используем список как очередь
     
     while queue:
-        node = queue.pop(0)  # Берём первый элемент
+        node = queue.pop(0)  # Берём ПЕРВЫЙ элемент (FIFO - First In First Out)
         result.append(node['value'])
         
-        # Добавляем детей в очередь
+        # Добавляем детей текущего узла в КОНЕЦ очереди
+        # Они обработаются потом, после всех узлов текущего уровня
         if node['left']:
             queue.append(node['left'])
         if node['right']:
@@ -209,53 +261,69 @@ def bfs_iterative(root):
 
 
 def bfs_recursive(root):
-    """Поиск в ширину (рекурсивный) - обход по уровням"""
+    """
+    Поиск в ширину через рекурсию - менее очевидный способ
+    Обрабатываем весь уровень целиком, потом переходим к следующему
+    """
     if root is None:
         return []
     
     result = []
     
     def process_level(nodes):
+        """Обрабатываем один уровень дерева"""
         if not nodes:
-            return
+            return  # Закончились уровни
         
-        next_level = []
+        next_level = []  # Собираем узлы следующего уровня
+        
+        # Обрабатываем все узлы текущего уровня
         for node in nodes:
             result.append(node['value'])
+            # Собираем детей для следующего уровня
             if node['left']:
                 next_level.append(node['left'])
             if node['right']:
                 next_level.append(node['right'])
         
+        # Рекурсивно обрабатываем следующий уровень
         process_level(next_level)
     
-    process_level([root])
+    process_level([root])  # Начинаем с корня
     return result
 
 
 # ============== ВИЗУАЛИЗАЦИЯ ДЕРЕВА ==============
+# Просто рисуем дерево в консоли с отступами
 
 def display_tree(root, level=0, prefix="Root: "):
-    """Красивый вывод дерева в консоль"""
+    """
+    Рекурсивно рисуем дерево
+    Используем отступы для показа уровней вложенности
+    """
     if root is None:
         return
     
+    # Печатаем текущий узел с отступом
     print(" " * (level * 4) + prefix + str(root['value']))
     
+    # Если есть дети - рисуем их
     if root['left'] is not None or root['right'] is not None:
         if root['left']:
-            display_tree(root['left'], level + 1, "L--- ")
+            display_tree(root['left'], level + 1, "L--- ")  # L = левый
         else:
             print(" " * ((level + 1) * 4) + "L--- None")
         
         if root['right']:
-            display_tree(root['right'], level + 1, "R--- ")
+            display_tree(root['right'], level + 1, "R--- ")  # R = правый
         else:
             print(" " * ((level + 1) * 4) + "R--- None")
 
 
 def display_tree_compact(root):
-    """Компактный вывод дерева"""
+    """
+    Вывод дерева с рамочкой для красоты
+    """
     if root is None:
         print("Дерево пустое")
         return
